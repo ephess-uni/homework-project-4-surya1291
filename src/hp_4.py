@@ -8,27 +8,64 @@ from collections import defaultdict
 def reformat_dates(old_dates):
     """Accepts a list of date strings in format yyyy-mm-dd, re-formats each
     element to a format dd mmm yyyy--01 Jan 2001."""
-    pass
-
+    
+    dates_formatted = [datetime.strptime(dates_old, "%Y-%m-%d").strftime('%d %b %Y') for dates_old in old_dates]
+    return dates_formatted
 
 def date_range(start, n):
     """For input date string `start`, with format 'yyyy-mm-dd', returns
     a list of of `n` datetime objects starting at `start` where each
     element in the list is one day after the previous."""
-    pass
+    if not isinstance(start, str) or not isinstance(n, int):
+        
+        raise TypeError()
+    
+    list_ranges = []
+    
+    start_date = datetime.strptime(start, '%Y-%m-%d')
+    
+    for i in range(n):
+        
+        list_ranges.append(start_date + timedelta(days=i))
+        
+    return list_ranges
 
 
 def add_date_range(values, start_date):
     """Adds a daily date range to the list `values` beginning with
     `start_date`.  The date, value pairs are returned as tuples
     in the returned list."""
-    pass
-
+    
+    st1 = date_range(start_date, len(values))
+    k = list(zip(st1, values))
+    return k
 
 def fees_report(infile, outfile):
-    """Calculates late fees per patron id and writes a summary report to
-    outfile."""
-    pass
+    
+    hdrs = ("book_uid,isbn_13,patron_id,date_checkout,date_due,date_returned".split(','))
+    fees_data = defaultdict(float)
+    
+    with open(infile, 'r') as f:
+        lines = DictReader(f, fieldnames=hdrs)
+        rows = [row for row in lines]
+
+    rows.pop(0)
+    for each_line in rows:
+        patronID = each_line['patron_id']
+        on_date_due = datetime.strptime(each_line['date_due'], "%m/%d/%Y")
+        on_date_returned = datetime.strptime(each_line['date_returned'], "%m/%d/%Y")
+        delays = (on_date_returned - on_date_due).days
+        fees_data[patronID]+= 0.25 * delays if delays > 0 else 0.0
+        
+    fee_set_data = [
+        {'patron_id': parton_ids, 'late_fees': f'{fees:0.2f}'} for parton_ids, fees in fees_data.items()
+    ]
+    with open(outfile, 'w') as read_file:
+        load_data = DictWriter(read_file,['patron_id', 'late_fees'])
+        load_data.writeheader()
+        load_data.writerows(fee_set_data)
+
+
 
 
 # The following main selection block will only run when you choose
